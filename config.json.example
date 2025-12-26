@@ -1,0 +1,40 @@
+{
+  "electrical": {
+    "grid_voltage_v": 230,
+    "max_current_a": 13,
+    "safety_margin": 1.08,
+    "hysteresis": 0.10
+  },
+  "solaredge": {
+    "url": "https://monitoringapi.solaredge.com/site/%SITE_ID%/overview",
+    "api_key": "%API_KEY%",
+    "timeout_s": 10
+  },
+  "hue": {
+    "url": "https://192.168.2.3/clip/v2/resource/light/%DEVICE_ID%",
+    "app_key": "%app_key%",
+    "timeout_s": 10,
+    "verify_tls": false
+  },
+  "sampling": {
+    "sample_interval_s": 5,
+    "window_s": 60,
+    "require_stable_on_s": 120,
+    "require_stable_off_s": 60,
+    "min_on_time_s": 300
+  },
+  "night_mode": {
+    "enabled": true,
+    "start": "22:00",
+    "end": "07:00"
+  },
+  "control": {
+    "auto_mode": true,
+    "manual_socket_state": null
+  },
+  "logging": {
+    "csv_log_file": "solar_charge_log.csv",
+    "log_level": "INFO"
+  }
+}
+
