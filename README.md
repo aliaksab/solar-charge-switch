@@ -71,7 +71,7 @@ python3 web_app.py
 
 Then open your browser and navigate to:
 ```
-http://<raspberry-pi-ip>:5000
+http://<raspberry-pi-ip>:5050
 ```
 
 The web interface provides:
@@ -171,7 +171,7 @@ All readings are logged to `solar_charge_log.csv` with the following columns:
 
 - **Socket not responding**: Check Hue Bridge URL and app key in config.json
 - **Solar power not updating**: Verify SolarEdge API key and site ID
-- **Web interface not accessible**: Check firewall settings and ensure port 5000 is open
+- **Web interface not accessible**: Check firewall settings and ensure port 5050 is open
 - **Configuration not saving**: Check file permissions on config.json
 
 ## License
