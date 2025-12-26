@@ -34,7 +34,8 @@
   },
   "logging": {
     "csv_log_file": "solar_charge_log.csv",
-    "log_level": "INFO"
+    "log_level": "INFO",
+    "retention_days": 30
   }
 }
 

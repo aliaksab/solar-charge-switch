@@ -238,6 +238,58 @@ def log_csv(ts, power, avg, med, state, auto_mode):
     except Exception as e:
         logging.error(f"Error writing to CSV: {e}")
 
+def cleanup_old_logs():
+    """Remove log entries older than retention_days."""
+    config = get_config()
+    csv_file = config["logging"]["csv_log_file"]
+    retention_days = config["logging"].get("retention_days", 30)
+    
+    if not os.path.exists(csv_file):
+        return 0
+    
+    try:
+        from datetime import timedelta
+        cutoff_time = datetime.now() - timedelta(days=retention_days)
+        
+        # Read all entries
+        entries = []
+        header = None
+        removed_count = 0
+        
+        with open(csv_file, "r", newline="") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)  # Read header
+            if header is None:
+                return 0
+            
+            for row in reader:
+                if len(row) > 0:
+                    try:
+                        # Parse timestamp
+                        entry_time = datetime.fromisoformat(row[0])
+                        if entry_time >= cutoff_time:
+                            entries.append(row)
+                        else:
+                            removed_count += 1
+                    except (ValueError, IndexError) as e:
+                        # Skip invalid entries
+                        logging.warning(f"Skipping invalid log entry: {e}")
+                        continue
+        
+        # Write back remaining entries
+        if removed_count > 0:
+            with open(csv_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                if header:
+                    writer.writerow(header)
+                writer.writerows(entries)
+            logging.info(f"Cleaned up {removed_count} old log entries (retention: {retention_days} days)")
+        
+        return removed_count
+    except Exception as e:
+        logging.error(f"Error cleaning up logs: {e}")
+        return 0
+
 
 # ============================================================
 # SIGNAL HANDLERS
@@ -280,6 +332,8 @@ def main():
     stable_on_since = None
     stable_off_since = None
     last_switch_time = None
+    last_cleanup_time = time.time()
+    CLEANUP_INTERVAL_S = 3600  # Run cleanup once per hour
 
     with requests.Session() as se, requests.Session() as hue:
         socket_on = get_hue_state(hue) or False
@@ -288,6 +342,11 @@ def main():
         while _running:
             now = datetime.now()
             config = get_config()
+            
+            # Periodic log cleanup (once per hour)
+            if time.time() - last_cleanup_time >= CLEANUP_INTERVAL_S:
+                cleanup_old_logs()
+                last_cleanup_time = time.time()
             
             # Recalculate thresholds in case config changed
             power_threshold_on, power_threshold_off = calculate_thresholds()

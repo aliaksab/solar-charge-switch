@@ -396,6 +396,31 @@
             </div>
         </div>
         
+        <div class="control-section">
+            <h2>Log Management</h2>
+            
+            <div class="control-group">
+                <label for="log-retention">Log Retention (days):</label>
+                <div class="input-group">
+                    <input type="number" id="log-retention" step="1" min="1" max="365">
+                    <button class="btn btn-primary" onclick="updateLogRetention()">Update</button>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: #666;">
+                    Logs older than this will be automatically removed. Cleanup runs once per hour.
+                </p>
+            </div>
+            
+            <div class="control-group">
+                <label>Manual Cleanup:</label>
+                <div class="input-group">
+                    <button class="btn btn-secondary" onclick="cleanupLogs()">Clean Up Old Logs Now</button>
+                </div>
+                <p style="margin-top: 8px; font-size: 12px; color: #666;">
+                    Immediately remove logs older than the retention period.
+                </p>
+            </div>
+        </div>
+        
         <div class="logs-section">
             <h2>Recent Logs</h2>
             <div id="logs-container">
@@ -449,6 +474,9 @@
                         document.getElementById('safety-margin').value = status.config.electrical.safety_margin;
                         document.getElementById('hysteresis').value = status.config.electrical.hysteresis;
                         document.getElementById('sample-interval').value = status.config.sampling.sample_interval_s;
+                        if (status.config.logging) {
+                            document.getElementById('log-retention').value = status.config.logging.retention_days || 30;
+                        }
                     }
                 }
             } catch (error) {
@@ -562,6 +590,60 @@
                 }
             } catch (error) {
                 showAlert('Error updating configuration', 'error');
+            }
+        }
+        
+        async function updateLogRetention() {
+            const retentionDays = document.getElementById('log-retention').value;
+            
+            if (!retentionDays || retentionDays < 1 || retentionDays > 365) {
+                showAlert('Please enter a valid retention period (1-365 days)', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        updates: {
+                            'logging.retention_days': parseInt(retentionDays)
+                        }
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(`Log retention updated to ${retentionDays} days`);
+                    fetchStatus();
+                } else {
+                    showAlert(data.error || 'Failed to update log retention', 'error');
+                }
+            } catch (error) {
+                showAlert('Error updating log retention', 'error');
+            }
+        }
+        
+        async function cleanupLogs() {
+            if (!confirm('This will permanently delete logs older than the retention period. Continue?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/logs/cleanup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert(data.message || `Cleaned up ${data.removed_count} old log entries`);
+                    fetchLogs(); // Refresh log display
+                } else {
+                    showAlert(data.error || 'Failed to cleanup logs', 'error');
+                }
+            } catch (error) {
+                showAlert('Error cleaning up logs', 'error');
             }
         }
         

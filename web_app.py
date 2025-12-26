@@ -21,7 +21,7 @@ from pathlib import Path
 from solar_charge_switch import (
     get_config, save_config, update_config, load_config,
     get_solaredge_power, get_hue_state, set_hue_state,
-    calculate_thresholds
+    calculate_thresholds, cleanup_old_logs
 )
 import requests
 
@@ -97,7 +97,8 @@ def api_status():
                 "config": {
                     "electrical": config["electrical"],
                     "sampling": config["sampling"],
-                    "night_mode": config["night_mode"]
+                    "night_mode": config["night_mode"],
+                    "logging": config["logging"]
                 }
             }
         })
@@ -200,6 +201,20 @@ def api_logs():
             "success": True,
             "logs": entries,
             "count": len(entries)
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/logs/cleanup", methods=["POST"])
+def api_cleanup_logs():
+    """Manually trigger log cleanup."""
+    try:
+        removed_count = cleanup_old_logs()
+        return jsonify({
+            "success": True,
+            "removed_count": removed_count,
+            "message": f"Cleaned up {removed_count} old log entries"
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
